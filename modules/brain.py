@@ -1,60 +1,51 @@
 # modules/brain.py
 from google import genai
 from config import GEMINI_API_KEY
-import  time
-from langdetect import detect
+from modules.actions import set_system_volume, set_system_brightness # Import actions here
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 class AIProcessor:
     def __init__(self):
         self.client = genai.Client(api_key=GEMINI_API_KEY)
-        # 2.5 Flash-Lite is the current 'best' for free 24/7 assistants
-        self.model_id = "gemini-2.5-flash-lite" 
+        self.model_id = "gemini-2.0-flash-lite" 
         self.chat = self.client.chats.create(model=self.model_id)
 
     def get_response(self, prompt):
-     try:
-        response = self.chat.send_message(prompt)
-        return response.text
-     except Exception as e:
-        if "429" in str(e):
-            print("Rate limit reached. Sleeping for 15 seconds...")
-            time.sleep(15) # Wait for the quota window to clear
-            return "I'm a bit overwhelmed right now. Please wait a moment before asking again."
-        return f"Error: {str(e)}"
+        try:
+            response = self.chat.send_message(prompt)
+            return response.text
+        except Exception as e:
+            return f"Error: {e}"
 
     def run_pipeline(self):
-        """Orchestrates the Listen -> Think -> Speak flow."""
         from modules.voice import VoiceEngine
         voice = VoiceEngine()
         
-        # 1. Capture voice input
+        # This is where user_text is defined!
         user_text = voice.listen()
         
         if user_text:
+            user_text_lower = user_text.lower()
             print(f"User: {user_text}")
-            
-            # 2. Get AI response from Gemini
-            ai_reply = self.get_response(user_text)
-            
-            # 3. Speak the AI response
-            voice.speak(ai_reply)
 
-    def run_pipeline(self):
-        from modules.voice import VoiceEngine
-        voice = VoiceEngine()
-        
-        user_text = voice.listen()
-        if user_text:
-            # 1. Detect language (Hindi 'hi' or English 'en')
-            try:
-                detected_lang = detect(user_text)
-            except:
-                detected_lang = 'en'
+            # --- HARDWARE CONTROL LOGIC MOVED HERE ---
+            if "volume to" in user_text_lower:
+                level = [int(s) for s in user_text.split() if s.isdigit()][0]
+                set_system_volume(level)
+                voice.speak(f"Setting volume to {level} percent")
+                return # Stop here so it doesn't ask Gemini as well
+
+            elif "brightness to" in user_text_lower:
+                level = [int(s) for s in user_text.split() if s.isdigit()][0]
+                set_system_brightness(level)
+                voice.speak(f"Setting brightness to {level} percent")
+                return
             
-            print(f"Detected Lang: {detected_lang} | User: {user_text}")
-            
-            # 2. Get AI response
+            # --- NORMAL AI RESPONSE ---
             ai_reply = self.get_response(user_text)
-            
-            # 3. Speak back in the detected language
-            voice.speak(ai_reply, lang=detected_lang)
+            voice.speak(ai_reply)
