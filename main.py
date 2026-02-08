@@ -4,58 +4,71 @@ import doc_module
 import voice_module
 import time
 import os
+from AppOpener import open as open_app, close as close_app
 
 def run_assistant():
-    print("🚀 2026 Desktop AI Assistant is ONLINE")
-    print("-" * 40)
-    print("Commands:")
+    print("🚀 2026 AI Assistant: FULLY INTEGRATED")
+    print("-" * 45)
+    print("COMMAND LIST:")
     print("[Ctrl+Shift+A] -> Read Screen & Create Word Doc")
-    print("[V]             -> Voice Chat (General)")
-    print("[G]             -> Web Search (Live Research)")
-    print("[O]             -> Action Mode (Open Apps)")
-    print("-" * 40)
+    print("[V]             -> Voice Chat (General Knowledge)")
+    print("[G]             -> Web Research (Live Google Search)")
+    print("[O]             -> Action Mode (Open/Close Apps)")
+    print("-" * 45)
+    print("System is listening for hotkeys...")
 
     while True:
-        # A. SCREEN READ & SAVE DOC
-        if keyboard.is_pressed('ctrl+shift+a'):
-            voice_module.speak("Capturing screen...")
-            analysis = vision_module.get_screen_analysis()
-            fname = doc_module.create_document(analysis)
-            voice_module.speak(f"Analysis complete. Saved to {fname}.")
-            print(analysis)
-            time.sleep(1)
+        try:
+            # 1. READ SCREEN & SAVE DOCUMENT
+            if keyboard.is_pressed('ctrl+shift+a'):
+                voice_module.speak("Capturing screen and analyzing.")
+                # Uses the vision module to read questions/text
+                analysis = vision_module.get_screen_analysis()
+                # Saves the result into a Word Document
+                fname = doc_module.create_document(analysis)
+                voice_module.speak(f"Finished. Answers are saved in {fname}.")
+                time.sleep(1)
 
-        # B. VOICE CHAT
-        if keyboard.is_pressed('v'):
-            voice_module.speak("I'm listening.")
-            query = voice_module.listen()
-            if query:
-                response = vision_module.get_chat_response(query)
-                voice_module.speak(response)
+            # 2. GENERAL VOICE CHAT
+            if keyboard.is_pressed('v'):
+                voice_module.speak("I am listening.")
+                query = voice_module.listen()
+                if query:
+                    response = vision_module.get_chat_response(query)
+                    voice_module.speak(response)
 
-        # C. WEB RESEARCH (LIVE)
-        if keyboard.is_pressed('g'):
-            voice_module.speak("What should I search for?")
-            query = voice_module.listen()
-            if query:
-                voice_module.speak(f"Searching Google for {query}...")
-                response = vision_module.get_web_search(query)
-                voice_module.speak(response)
+            # 3. LIVE WEB RESEARCH
+            if keyboard.is_pressed('g'):
+                voice_module.speak("What should I search on the web?")
+                query = voice_module.listen()
+                if query:
+                    voice_module.speak(f"Searching for {query}...")
+                    response = vision_module.get_web_search(query)
+                    voice_module.speak(response)
 
-        # D. ACTION MODE (APP OPENER)
-        if keyboard.is_pressed('o'):
-            voice_module.speak("Which app should I open?")
-            app_name = voice_module.listen().lower()
-            if "notepad" in app_name:
-                os.system("notepad.exe")
-            elif "chrome" in app_name:
-                os.system("start chrome")
-            elif "calculator" in app_name:
-                os.system("calc.exe")
-            else:
-                voice_module.speak(f"I don't have a shortcut for {app_name} yet.")
+            # 4. ACTION MODE (OPEN & CLOSE APPS)
+            if keyboard.is_pressed('o'):
+                voice_module.speak("System command? Say 'Open' or 'Close' followed by the app name.")
+                command = voice_module.listen().lower()
+                
+                if command:
+                    # Logic for CLOSING an app
+                    if "close" in command:
+                        target = command.replace("close", "").strip()
+                        voice_module.speak(f"Closing {target}")
+                        close_app(target, match_closest=True, output=False)
+                    
+                    # Logic for OPENING an app
+                    else:
+                        target = command.replace("open", "").strip()
+                        voice_module.speak(f"Opening {target}")
+                        open_app(target, match_closest=True, output=False)
 
-        time.sleep(0.1)
+        except Exception as e:
+            print(f"Main Loop Error: {e}")
+            time.sleep(1) # Small pause to prevent rapid-fire errors
+
+        time.sleep(0.05) # Keeps CPU usage low
 
 if __name__ == "__main__":
     run_assistant()
