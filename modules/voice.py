@@ -6,44 +6,71 @@ import time
 
 class VoiceEngine:
     def __init__(self):
+        """Initializes the audio mixer and speech recognizer."""
         pygame.mixer.init()
-        # Use absolute path to avoid directory errors
-        self.temp_file = os.path.join(os.getcwd(), "response.mp3")
+        # Ensure we use an absolute path for the audio file
+        self.temp_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "response.mp3")
         self.recognizer = sr.Recognizer()
         self.microphone = sr.Microphone()
 
     def speak(self, text, lang='en'):
+        """
+        Converts text to speech using gTTS and plays it via Pygame.
+        Supported langs: 'en' (English), 'hi' (Hindi), 'bn' (Bengali)
+        """
         try:
-            # Release file from mixer before saving new one
+            # 1. Stop and unload the mixer to release the file handle
             if pygame.mixer.music.get_busy():
                 pygame.mixer.music.stop()
             pygame.mixer.music.unload()
 
-            # Save the new speech
+            # 2. Delete the old file if it exists to start fresh
+            if os.path.exists(self.temp_file):
+                try:
+                    os.remove(self.temp_file)
+                except OSError:
+                    pass # Skip if file is still locked by system
+
+            # 3. Generate new speech and save
             tts = gTTS(text=text, lang=lang)
             tts.save(self.temp_file)
             
-            # Wait a tiny bit for the file to exist on disk
-            while not os.path.exists(self.temp_file):
-                time.sleep(0.1)
-
+            # 4. Wait for file to be ready, then play
+            time.sleep(0.2) 
             pygame.mixer.music.load(self.temp_file)
             pygame.mixer.music.play()
 
+            # 5. Keep the thread alive until the AI finishes speaking
             while pygame.mixer.music.get_busy():
                 time.sleep(0.1)
+                
         except Exception as e:
-            print(f"Voice Error: {e}")
+            print(f"Voice Output Error: {e}")
 
-    def listen(self):
+    def listen(self, lang="en-IN"):
+        """
+        Listens to the microphone and converts speech to text.
+        Returns the string or None if it fails.
+        """
         with self.microphone as source:
-            print("Listening (Multi-language)...")
+            print(f"Listening ({lang})...")
+            # Adjust for background noise in your room
             self.recognizer.adjust_for_ambient_noise(source, duration=0.5)
             try:
-                # We don't specify a language here so it picks up the dominant one
+                # Capture audio with a 5s wait time and 10s max recording
                 audio = self.recognizer.listen(source, timeout=5, phrase_time_limit=10)
-                # Recognize using a list of likely languages
-                query = self.recognizer.recognize_google(audio, language="hi-IN") 
+                print("Processing speech...")
+                
+                # Convert to text using Google's API
+                query = self.recognizer.recognize_google(audio, language=lang)
+                print(f"Captured: {query}")
                 return query
-            except Exception:
+            except sr.UnknownValueError:
+                print("Could not understand the audio.")
+                return None
+            except sr.RequestError:
+                print("Speech API service is down.")
+                return None
+            except Exception as e:
+                print(f"Microphone Error: {e}")
                 return None
