@@ -1,22 +1,38 @@
-import threading
-from modules.listeners import HotkeyListener, WakeWordListener
-from modules.brain import AIProcessor
+import keyboard
+import vision_module
+import doc_module
+import voice_module
+import time
 
-def on_trigger(source):
-    """Callback function when Hotākey or Sound activates the AI."""
-    print(f"Triggered by: {source}")
-    ai = AIProcessor()
-    ai.run_pipeline()
+def run_assistant():
+    print("🚀 Assistant Active!")
+    print("Ctrl+Shift+A: Read Screen | V: Ask Voice Question")
+
+    while True:
+        # Trigger 1: Screen Read
+        if keyboard.is_pressed('ctrl+shift+a'):
+            voice_module.speak("Analyzing your screen now.")
+            analysis = vision_module.get_screen_analysis()
+            
+            # Save to doc
+            doc_name = doc_module.create_document(analysis)
+            
+            # Speak the answer
+            voice_module.speak(f"I've found the answers and saved them to {doc_name}. Here is the first part: {analysis[:150]}")
+            time.sleep(1)
+
+        # Trigger 2: Ask a question
+        if keyboard.is_pressed('v'):
+            voice_module.speak("I'm listening.")
+            user_query = voice_module.listen()
+            
+            if user_query:
+                response = vision_module.get_chat_response(user_query)
+                voice_module.speak(response)
+            else:
+                voice_module.speak("I didn't catch that.")
+
+        time.sleep(0.1)
 
 if __name__ == "__main__":
-    # Initialize our listeners
-    hotkey_thread = HotkeyListener(callback=lambda: on_trigger("Hotkey"))
-    wakeword_thread = WakeWordListener(callback=lambda: on_trigger("Wake Word"))
-
-    # Start the background threads
-    hotkey_thread.start()
-    wakeword_thread.start()
-
-    print("Assistant is active 24/7 in the background...")
-    hotkey_thread.join()
-    wakeword_thread.join()
+    run_assistant()
