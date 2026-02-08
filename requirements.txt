@@ -1,0 +1,6 @@
+pynput              # For Hotkeys
+openwakeword        # Efficient Wake Word (Sound)
+SpeechRecognition   # Audio to Text
+google-generativeai # For Gemini AI "Brain"
+pyttsx3             # Local Text-to-Speech
+PyAudio             # Mic access
