@@ -4,10 +4,11 @@ import doc_module
 import voice_module
 import time
 import os
+import threading  # Added for background fatigue monitoring
 from AppOpener import open as open_app, close as close_app
 
 def run_assistant():
-    print("🚀 2026 AI Assistant: FULLY INTEGRATED")
+    print("🚀 2026 AI Assistant: FULLY INTEGRATED (Amit Edition)")
     print("-" * 45)
     print("COMMAND LIST:")
     print("[Ctrl+Shift+A] -> Read Screen & Create Word Doc")
@@ -16,8 +17,19 @@ def run_assistant():
     print("[O]             -> Action Mode (Open/Close Apps)")
     print("[F]             -> Autofill Form (Based on Personal Info)")
     print("[W]             -> WhatsApp Automation (CSV Contacts)")
+    print("[E]             -> Manual Emotion & Fatigue Check")
     print("-" * 45)
     print("System is listening for hotkeys...")
+    print("🕒 Background Fatigue Monitor: ACTIVE (Checks every 5 mins)")
+
+    # --- START BACKGROUND MONITOR ---
+    # Runs the 5-minute loop in a separate thread so hotkeys stay responsive
+    monitor_thread = threading.Thread(
+        target=vision_module.fatigue_monitor_loop, 
+        args=(voice_module,), 
+        daemon=True
+    )
+    monitor_thread.start()
 
     while True:
         try:
@@ -27,10 +39,9 @@ def run_assistant():
                 analysis = vision_module.get_screen_analysis()
                 fname = doc_module.create_document(analysis)
                 voice_module.speak(f"Finished. Answers saved in {fname}.")
-                print(analysis)
                 while keyboard.is_pressed('ctrl') or keyboard.is_pressed('a'): pass 
 
-            # 2. PERSONALIZED VOICE CHAT (Who is Amit?)
+            # 2. PERSONALIZED VOICE CHAT
             if keyboard.is_pressed('v'):
                 voice_module.speak("I am listening.")
                 query = voice_module.listen()
@@ -64,13 +75,13 @@ def run_assistant():
                         open_app(target, match_closest=True, output=False)
                 while keyboard.is_pressed('o'): pass 
 
-            # 5. AUTOFILL FORM (Typing mode)
+            # 5. SMART AUTOFILL (Typing & Web Search Mode)
             if keyboard.is_pressed('f'):
                 voice_module.speak("Analyzing form fields. Prepare to click the first field.")
-                instructions = vision_module.autofill_form_logic()
+                # This uses the 'smart_autofill' that searches the web for unknowns
+                instructions = vision_module.smart_autofill()
                 print("\n--- FILLING INSTRUCTIONS ---")
                 print(instructions)
-                # This calls the function that actually types into the form
                 vision_module.type_into_form(instructions)
                 while keyboard.is_pressed('f'): pass 
 
@@ -91,6 +102,17 @@ def run_assistant():
                         result = vision_module.whatsapp_action("call", name)
                         voice_module.speak(result)
                 while keyboard.is_pressed('w'): pass 
+
+            # 7. MANUAL EMOTION CHECK
+            if keyboard.is_pressed('e'):
+                voice_module.speak("Checking in on you, Amit.")
+                emotion, suggest_break = vision_module.detect_emotion_and_check_fatigue()
+                if suggest_break:
+                    voice_module.speak("Amit, you look tired. Time for a study break.")
+                    vision_module.open_relaxation_music()
+                else:
+                    voice_module.speak(f"You seem to be feeling {emotion}.")
+                while keyboard.is_pressed('e'): pass
 
         except Exception as e:
             print(f"Main Loop Error: {e}")

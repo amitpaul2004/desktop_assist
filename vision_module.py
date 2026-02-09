@@ -1,12 +1,26 @@
+import os
+# This MUST come before 'import cv2' or 'from deepface import DeepFace'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+
+
 from google import genai
 from google.genai import types
 import pyautogui
-import os
+
 from dotenv import load_dotenv
 from googlesearch import search
 import time
 import csv
 import pywhatkit as kit
+import cv2
+from deepface import DeepFace
+import webbrowser
+import threading
+import time
+
+
+
 
 load_dotenv()
 
@@ -220,3 +234,62 @@ def smart_autofill():
             final_instructions.append(line)
 
     return "\n".join(final_instructions)
+
+# At the top of vision_module.py
+tired_counter = 0 
+
+def detect_emotion_and_check_fatigue():
+    global tired_counter
+    try:
+        cap = cv2.VideoCapture(0)
+        ret, frame = cap.read()
+        if not ret: return "Camera Error", False
+        
+        face_img = "current_face.png"
+        cv2.imwrite(face_img, frame)
+        cap.release()
+
+        analysis = DeepFace.analyze(img_path=face_img, actions=['emotion'], enforce_detection=False)
+        dominant_emotion = analysis[0]['dominant_emotion']
+        
+        # Logic for fatigue tracking
+        # We consider 'neutral', 'sad' (often looks like tired), or 'fear' (stress)
+        if dominant_emotion in ['neutral', 'sad']:
+            tired_counter += 1
+        else:
+            tired_counter = 0 # Reset if you look happy or active
+            
+        # Trigger break if detected 3 times in a row
+        should_break = False
+        if tired_counter >= 3:
+            should_break = True
+            tired_counter = 0 # Reset after suggesting
+            
+        return dominant_emotion, should_break
+
+    except Exception as e:
+        print(f"Emotion Error: {e}")
+        return "error", False
+    
+# YouTube link for relaxation music
+RELAX_URL = "https://www.youtube.com/watch?v=5qap5aO4i9A" # Lofi / Relaxing music
+
+def open_relaxation_music():
+    """Opens a YouTube video for a study break"""
+    print("🎵 Opening relaxation music...")
+    webbrowser.open(RELAX_URL)
+
+def fatigue_monitor_loop(voice_module):
+    """Background loop that runs every 5 minutes"""
+    while True:
+        # Wait for 5 minutes (300 seconds)
+        time.sleep(10)
+        
+        print("🕒 5-Minute Check: Analyzing fatigue...")
+        emotion, suggest_break = detect_emotion_and_check_fatigue()
+        
+        if suggest_break:
+            voice_module.speak("Amit, you've been working hard at JIS University for a while. It's time for a break.")
+            open_relaxation_music()
+        elif emotion in ['neutral', 'sad']:
+            print(f"System noticed you look {emotion}. Fatigue counter: {tired_counter}")
