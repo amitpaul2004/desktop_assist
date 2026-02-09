@@ -283,7 +283,7 @@ def fatigue_monitor_loop(voice_module):
     """Background loop that runs every 5 minutes"""
     while True:
         # Wait for 5 minutes (300 seconds)
-        time.sleep(10)
+        time.sleep(300)
         
         print("🕒 5-Minute Check: Analyzing fatigue...")
         emotion, suggest_break = detect_emotion_and_check_fatigue()
