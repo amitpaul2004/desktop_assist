@@ -1,0 +1,52 @@
+AMIT PAUL
+
+BASIC INFORMATION
+
+Name: Amit Paul Country: India Status: Graduate Profession: Self-Taught
+Developer
+
+CONTACT DETAILS
+
+Phone Number: 9836868192 Email: pal900290@gmail.com GitHub: https://github.com/amitpaul2004 LinkedIn: www.linkedin.com/in/amit-paul-820771324
+
+EDUCATIONAL BACKGROUND
+
+School: Kendriya Vidyalaya No. 2 Ichapur College: JIS University Degree:
+Bachelor of Technology (B.Tech)
+
+TECHNICAL SKILLS
+
+Programming Languages: - Java - Python
+
+Web Development: - HTML - CSS - Bootstrap - JavaScript
+
+PROJECT EXPERIENCE
+
+-   Developed a OneNote-style web application with modular HTML, CSS,
+    and JavaScript structure.
+-   Implemented toolbar features including a smooth sliding “Draw”
+    toolbar.
+-   Worked on GitHub contribution projects including creative visual
+    contribution concepts.
+-   Solved logic-based programming problems and debugging issues in Java
+    and Python.
+-   Created structured README documentation with organized folder
+    structures and icons.
+-   Designed AR-based café menu concepts.
+-   Assisted in event poster and registration content creation.
+
+OTHER INTERESTS
+
+-   Fitness and event participation (Men’s Physique category
+    involvement).
+-   UI/UX presentation and design formatting.
+-   Bengali translation and content editing.
+-   Certificate editing and structured documentation creation.
+
+PERSONAL PROFILE
+
+Amit Paul is a graduate and self-taught developer from India with a
+strong academic foundation from Kendriya Vidyalaya No. 2 Ichapur and a
+B.Tech degree from JIS University. He actively builds web applications,
+works on GitHub projects, and continuously improves his programming and
+development skills through practical implementation and experimentation.
