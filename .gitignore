@@ -1,5 +1,7 @@
 .env
-__pycache__/
+__pycache__
+contacts.csv
+personal_info.txt
 *.png
 *.docx
 contacts.csv
