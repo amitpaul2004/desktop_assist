@@ -5,6 +5,8 @@ import os
 from dotenv import load_dotenv
 from googlesearch import search
 import time
+import csv
+import pywhatkit as kit
 
 load_dotenv()
 
@@ -128,3 +130,93 @@ def type_into_form(instructions):
                     # Press Tab to move to the next field
                     pyautogui.press('tab') 
                     time.sleep(0.5) # Wait for page response
+
+
+import csv
+
+def get_number_by_name(name):
+    """Searches the Google Contacts CSV format for a name"""
+    try:
+        # Using utf-8-sig to handle hidden Windows characters
+        with open('contacts.csv', mode='r', encoding='utf-8-sig') as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                # Use 'First Name' instead of 'Name'
+                contact_name = row.get('First Name', '')
+                # Use 'Phone 1 - Value' instead of 'Number'
+                contact_number = row.get('Phone 1 - Value', '')
+                
+                if contact_name.lower() == name.lower():
+                    # Strip any spaces from the number to avoid errors
+                    return contact_number.replace(" ", "")
+        return None
+    except Exception as e:
+        print(f"❌ CSV Error: {e}")
+        return None
+
+def whatsapp_action(action_type, name, message=None):
+    """Handles WhatsApp messaging and calls using CSV lookup"""
+    number = get_number_by_name(name)
+    
+    if not number:
+        return f"Contact '{name}' not found in your CSV."
+
+    try:
+        if action_type == "text" and message:
+            print(f"💬 Texting {name} ({number}): {message}")
+            kit.sendwhatmsg_instantly(number, message, wait_time=25, tab_close=True)
+            return f"Message sent to {name}."
+            
+        elif action_type == "call":
+            print(f"📞 Calling {name} ({number})...")
+            # This opens the chat; you click the call button in the Desktop App
+            call_url = f"whatsapp://send?phone={number}" 
+            os.startfile(call_url)
+            return f"WhatsApp opened for {name}."
+            
+    except Exception as e:
+        return f"WhatsApp Error: {str(e)}"
+    
+def smart_autofill():
+    """Captures form, checks personal info, searches web for unknowns, then types"""
+    # 1. Get your personal data
+    personal_context = get_personal_context()
+    
+    # 2. Capture the form
+    screenshot_path = "temp_form.png"
+    pyautogui.screenshot(screenshot_path)
+    
+    with open(screenshot_path, "rb") as f:
+        image_data = f.read()
+
+    # 3. Ask Gemini to identify fields and flag "Unknowns"
+    prompt = f"""
+    Analyze this form. For each field:
+    1. If the answer is in my info: {personal_context}, use it.
+    2. If the answer is a general knowledge question NOT in my info, 
+       respond with 'SEARCH: [the question]'.
+    Format as 'Field Name: Value'.
+    """
+    
+    initial_analysis = client.models.generate_content(
+        model=CURRENT_MODEL,
+        contents=[prompt, types.Part.from_bytes(data=image_data, mime_type='image/png')]
+    ).text
+
+    # 4. Process "SEARCH" flags
+    final_instructions = []
+    lines = initial_analysis.split('\n')
+    
+    for line in lines:
+        if "SEARCH:" in line:
+            # Extract the search query
+            query = line.split("SEARCH:")[1].strip()
+            voice_module.speak(f"Searching web for {query}")
+            # Use your existing web search function
+            web_answer = get_web_search(query)
+            # Clean the answer to be short for the form
+            final_instructions.append(f"{line.split(':')[0]}: {web_answer}")
+        else:
+            final_instructions.append(line)
+
+    return "\n".join(final_instructions)
