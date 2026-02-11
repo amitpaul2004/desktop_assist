@@ -106,13 +106,26 @@ def run_assistant():
             # 7. MANUAL EMOTION CHECK
             if keyboard.is_pressed('e'):
                 voice_module.speak("Checking in on you, Amit.")
-                emotion, suggest_break = vision_module.detect_emotion_and_check_fatigue()
+                
+                # PRE-INITIALIZE LOCALLY IN MAIN
+                emotion = "unknown"
+                suggest_break = False 
+                
+                try:
+                    # Try to get the values from the module
+                    emotion, suggest_break = vision_module.detect_emotion_and_check_fatigue()
+                except Exception as e:
+                    print(f"Error calling fatigue function: {e}")
+
                 if suggest_break:
                     voice_module.speak("Amit, you look tired. Time for a study break.")
                     vision_module.open_relaxation_music()
                 else:
                     voice_module.speak(f"You seem to be feeling {emotion}.")
+                
                 while keyboard.is_pressed('e'): pass
+            
+            
 
         except Exception as e:
             print(f"Main Loop Error: {e}")

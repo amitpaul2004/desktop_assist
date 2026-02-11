@@ -16,14 +16,14 @@ def init_engine():
 engine = init_engine()
 
 def speak(text):
-    """Makes the AI speak"""
-    print(f"🎙️ AI: {text}")
     try:
+        print(f"🎙️ AI: {text}")
         engine.say(text)
         engine.runAndWait()
     except Exception as e:
         print(f"Voice Error: {e}")
-
+        # If the loop is already running, we just let it finish 
+        # instead of crashing the whole assistant.
 def listen():
     """Listens for the user's voice and returns text"""
     r = sr.Recognizer()

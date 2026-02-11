@@ -3,11 +3,11 @@ import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 
-
+from duckduckgo_search import DDGS
 from google import genai
 from google.genai import types
 import pyautogui
-
+from googlesearch import search as google_query
 from dotenv import load_dotenv
 from googlesearch import search
 import time
@@ -60,19 +60,37 @@ def get_chat_response(user_input):
         return f"Chat Error: {str(e)}"
 
 def get_web_search(query):
-    """Performs live web search and summarizes findings"""
+    """
+    Performs a live web search using the latest DDGS syntax.
+    """
     try:
-        search_results = []
-        # Get top 3 search results
-        for res in search(query, num_results=3, advanced=True):
-            search_results.append(f"Title: {res.title}\nSnippet: {res.description}\nSource: {res.url}")
+        print(f"🔍 Searching the web for: {query}...")
         
-        context = "\n\n".join(search_results)
-        prompt = f"Using these 2026 search results, answer the question: '{query}'\n\nResults:\n{context}"
-        
-        return get_chat_response(prompt)
+        results = []
+        # In the newest versions, DDGS() works as a context manager
+        with DDGS() as ddgs:
+            # We use list comprehension to capture the generator output
+            ddgs_gen = ddgs.text(query, max_results=5)
+            for r in ddgs_gen:
+                results.append(r)
+
+        if not results:
+            return "I searched the web but couldn't find any relevant information."
+
+        # Format the data for Gemini
+        search_context = ""
+        for i, r in enumerate(results, 1):
+            search_context += f"Source {i}: {r['title']}\nSnippet: {r['body']}\n\n"
+
+        # Strict Prompt to keep it focused on the web, not your resume
+        prompt = f"Answer this question based ONLY on these web results:\n\n{search_context}\n\nQuestion: {query}"
+
+        response = model.generate_content(prompt)
+        return response.text
+
     except Exception as e:
-        return f"Search Error: {str(e)}"
+        print(f"Web Search Error: {e}")
+        return "Sorry Amit, I'm having trouble connecting to the search service."
     
 def get_personal_context():
     """Reads your personal info from the text file with UTF-8 encoding"""
@@ -240,39 +258,46 @@ tired_counter = 0
 
 def detect_emotion_and_check_fatigue():
     global tired_counter
+    # 1. INITIALIZE AT THE VERY TOP
+    dominant_emotion = "unknown"
+    suggest_break = False 
+    
     try:
         cap = cv2.VideoCapture(0)
         ret, frame = cap.read()
-        if not ret: return "Camera Error", False
+        
+        if not ret:
+            print("❌ Camera access failed.")
+            cap.release()
+            return dominant_emotion, suggest_break # Returns (unknown, False)
         
         face_img = "current_face.png"
         cv2.imwrite(face_img, frame)
         cap.release()
 
+        # Perform DeepFace analysis
         analysis = DeepFace.analyze(img_path=face_img, actions=['emotion'], enforce_detection=False)
         dominant_emotion = analysis[0]['dominant_emotion']
         
-        # Logic for fatigue tracking
-        # We consider 'neutral', 'sad' (often looks like tired), or 'fear' (stress)
+        # 2. LOGIC UPDATES
         if dominant_emotion in ['neutral', 'sad']:
             tired_counter += 1
         else:
-            tired_counter = 0 # Reset if you look happy or active
+            tired_counter = 0 
             
-        # Trigger break if detected 3 times in a row
-        should_break = False
         if tired_counter >= 3:
-            should_break = True
-            tired_counter = 0 # Reset after suggesting
+            suggest_break = True
+            tired_counter = 0 
             
-        return dominant_emotion, should_break
+        return dominant_emotion, suggest_break
 
     except Exception as e:
-        print(f"Emotion Error: {e}")
-        return "error", False
+        # 3. FALLBACK
+        print(f"Emotion Logic Error: {e}")
+        return dominant_emotion, suggest_break
     
 # YouTube link for relaxation music
-RELAX_URL = "https://www.youtube.com/watch?v=5qap5aO4i9A" # Lofi / Relaxing music
+RELAX_URL = "https://www.youtube.com/watch?v=jfKfPfyJRdk" # Lofi / Relaxing music
 
 def open_relaxation_music():
     """Opens a YouTube video for a study break"""
@@ -280,16 +305,30 @@ def open_relaxation_music():
     webbrowser.open(RELAX_URL)
 
 def fatigue_monitor_loop(voice_module):
-    """Background loop that runs every 5 minutes"""
+    """Background loop that runs every 5 minutes with Emotional Speech"""
     while True:
         # Wait for 5 minutes (300 seconds)
-        time.sleep(300)
+        time.sleep(300) 
         
         print("🕒 5-Minute Check: Analyzing fatigue...")
         emotion, suggest_break = detect_emotion_and_check_fatigue()
         
+        # 1. HANDLE STUDY BREAKS FIRST
         if suggest_break:
             voice_module.speak("Amit, you've been working hard at JIS University for a while. It's time for a break.")
             open_relaxation_music()
-        elif emotion in ['neutral', 'sad']:
-            print(f"System noticed you look {emotion}. Fatigue counter: {tired_counter}")
+        
+        # 2. EMOTIONAL SPEECH (If no break is needed yet)
+        elif emotion == "happy":
+            voice_module.speak("I noticed you're looking happy, Amit! Did you solve a tough bug in your MERN project?")
+        elif emotion == "angry":
+            voice_module.speak("You look a bit frustrated. Take a deep breath; we will fix the code together.")
+        elif emotion == "sad":
+            voice_module.speak("You seem a bit down. Remember, you're a great developer. Keep going!")
+        elif emotion == "neutral":
+            # Only print neutral to avoid being too annoying, but speak if counter is high
+            print(f"System noticed you look neutral. Fatigue counter: {tired_counter}")
+        
+        # Log the status for debugging
+        if emotion == "unknown":
+            print("🕒 Check complete: No face detected.")
