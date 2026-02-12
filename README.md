@@ -31,7 +31,7 @@ desktop_assistant/
 ├── doc_module.py         # 📄 Document Automation
 ├── personal_info.txt     # 👤 AI Context & Resume Data
 └── contacts.csv          # 📱 WhatsApp Contact List
-
+```
 ---
 
 ## 🎮 How to Use
@@ -50,5 +50,5 @@ V,      Voice Chat,      Deep conversation based on your personal context.
 
 ```
 pip install keyboard pyautogui pyttsx3 SpeechRecognition opencv-python \
-            deepface duckduckgo-search AppOpener python-docx google-generativeai
+deepface duckduckgo-search AppOpener python-docx google-generativeai
 ```
