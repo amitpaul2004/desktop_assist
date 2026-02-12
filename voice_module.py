@@ -1,44 +1,44 @@
 import pyttsx3
 import speech_recognition as sr
+import threading
 
-# Initialize the 'Mouth' (Text-to-Speech)
-def init_engine():
-    try:
-        # sapi5 is the standard voice driver for Windows
-        engine = pyttsx3.init('sapi5')
-    except Exception:
-        engine = pyttsx3.init()
-    
-    engine.setProperty('rate', 180)
-    engine.setProperty('volume', 1.0)
-    return engine
-
-engine = init_engine()
+# Create a lock to prevent simultaneous speech overlapping
+speech_lock = threading.Lock()
 
 def speak(text):
-    try:
-        print(f"🎙️ AI: {text}")
-        engine.say(text)
-        engine.runAndWait()
-    except Exception as e:
-        print(f"Voice Error: {e}")
-        # If the loop is already running, we just let it finish 
-        # instead of crashing the whole assistant.
+    """Thread-safe speech function to prevent 'run loop' errors."""
+    def _run_speech():
+        with speech_lock:
+            try:
+                # Initialize engine locally inside the thread for stability
+                engine = pyttsx3.init()
+                
+                # Optional: Adjust speed for a more natural feel
+                engine.setProperty('rate', 180) 
+                
+                print(f"🎙️ AI: {text}")
+                engine.say(text)
+                engine.runAndWait()
+                engine.stop() # Cleanly stop the engine
+            except Exception as e:
+                print(f"Voice Output Error: {e}")
+
+    # Run speech in a temporary thread so it doesn't freeze the main app
+    t = threading.Thread(target=_run_speech)
+    t.start()
+
 def listen():
-    """Listens for the user's voice and returns text"""
+    """Listens for user voice input and returns text."""
     r = sr.Recognizer()
     with sr.Microphone() as source:
         print("Listening...")
-        # Adjust for background noise
-        r.adjust_for_ambient_noise(source, duration=0.5)
-        try:
-            audio = r.listen(source, timeout=5, phrase_time_limit=10)
-            query = r.recognize_google(audio)
-            print(f"👤 You: {query}")
-            return query
-        except sr.WaitTimeoutError:
-            print("No speech detected.")
-            return ""
-        except Exception as e:
-            print(f"Listening Error: {e}")
-            return ""
+        r.pause_threshold = 1
+        audio = r.listen(source)
+    try:
+        print("Recognizing...")
+        query = r.recognize_google(audio, language='en-in')
+        print(f"User said: {query}\n")
+        return query
+    except Exception as e:
+        print("Could not understand audio.")
+        return None

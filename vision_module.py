@@ -18,6 +18,8 @@ from deepface import DeepFace
 import webbrowser
 import threading
 import time
+import pyautogui
+
 
 
 
@@ -332,3 +334,16 @@ def fatigue_monitor_loop(voice_module):
         # Log the status for debugging
         if emotion == "unknown":
             print("🕒 Check complete: No face detected.")
+
+
+def type_into_form(data_list):
+    # data_list should be a list of strings like ["Amit Paul", "Ichapur", "MERN Developer"]
+    for info in data_list:
+        # Type the info with a slight human-like delay
+        pyautogui.write(info, interval=0.1) 
+        
+        # Press Tab to move to the next field
+        pyautogui.press('tab')
+        
+        # Short pause between fields to let the website keep up
+        time.sleep(0.5)
